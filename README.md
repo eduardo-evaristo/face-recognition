@@ -51,6 +51,7 @@ curl -X POST http://localhost:5000/recognize -F "screenshot=@path_to_your_image.
 
 - The application currently compares the uploaded image with two predefined images (`./pic_of_me.jpeg` and `./not_me.jpg`). You can modify these paths as needed.
 - The application uses a virtual environment within the Docker container to manage its dependencies.
+- The `face_recognition` library used in this project can be found [here](https://pypi.org/project/face-recognition/).
 
 ### License
 
