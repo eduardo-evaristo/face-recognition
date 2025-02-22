@@ -42,10 +42,13 @@ RUN cd ~ && \
 # RUN whatever_command_you_run_to_start_your_app
 
 WORKDIR /app
+
 COPY . .
+
 # Create virtual environment and install dependencies in one step
 RUN python3 -m venv venv && \
     venv/bin/pip install --no-cache-dir -r requirements.txt
+
 # Run the app using the virtual environment
 CMD ["venv/bin/python", "server.py"]
 
