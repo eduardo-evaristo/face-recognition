@@ -24,7 +24,7 @@ client = MongoClient(os.getenv('MONGO_URI'))
 db = client['ReconhecimentoFacial']
 collection = db["rostos"]
 
-
+# Testing out connection
 try:
     client.admin.command('ping')
     print('Conexão bem-sucedida!')
@@ -34,10 +34,7 @@ except Exception as exc:
 
 @app.route("/recognize", methods=['POST'])
 def recognize():
-    global indexOfPic
-    # compareImg = request.files.get('comparison')
     userLiveImg = request.files.get('screenshot')
-    print(request.files)
 
     if not userLiveImg:
         return {"error": "An image to compare must be provided"}, 400
@@ -46,35 +43,29 @@ def recognize():
         # Load and encode the live image
         userLiveFace = face_recognition.load_image_file(userLiveImg)
         userLiveFaceEncodings = face_recognition.face_encodings(userLiveFace)
-        print(userLiveFaceEncodings[0])
+
         if not userLiveFaceEncodings:
             return {"error": "No face detected in the live image"}, 400
         
-        # Load and encode the comparison image
-        compareFace = face_recognition.load_image_file(compareImgPaths[indexOfPic])
-        indexOfPic = 1 if indexOfPic == 0 else 0
-        compareFaceEncodings = face_recognition.face_encodings(compareFace)
-        print(compareFaceEncodings[0])
-        if not compareFaceEncodings:
-            return {"error": "No face detected in the comparison image"}, 400
-
-        compareFaceEncoding = compareFaceEncodings[0]
-
-
+        # Attributing user's face encoding to a variable
         userLiveFaceEncoding = userLiveFaceEncodings[0]
 
-        # Compare faces
-        results = face_recognition.compare_faces([compareFaceEncoding], userLiveFaceEncoding)
-        if results[0] == True:
-            string = "It's a picture of me!"
-            print(string)
-            return {'result': True}
-        else:
-            string = "It's not a picture of me!"
-            print(string)
-            return {'result': False}
-    
+        # Getting all known encodings
+        known_encodings = list(collection.find({}))
 
+        if not known_encodings:
+            return {'result': 'There are no faces to compare'}
+
+        for face in known_encodings:
+            face_encoding = np.array(face['rosto'])
+            # Compare faces
+            comparison = face_recognition.compare_faces([face_encoding], userLiveFaceEncoding)
+
+            if comparison[0]:
+                return {'result': face['nome']}
+        
+        return {'result': 'No matching face found, register first'}, 404
+    
     except Exception as e:
         return {"error": f"An unexpected error occurred: {str(e)}"}, 500
 
