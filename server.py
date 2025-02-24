@@ -5,7 +5,9 @@ import face_recognition
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from pymongo import MongoClient
 import os
+import numpy as np
 
 config = load_dotenv()
 app = Flask(__name__)
@@ -17,6 +19,17 @@ app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024
 # Change this accordingly to the needs. depois que começarmos a salvar os rostos conhecidos, mudaremos essa parte e pegaremos isso do banco de dados
 compareImgPaths = ['./pic_of_me.jpeg', './not_me.jpg']
 indexOfPic = 0
+
+client = MongoClient(os.getenv('MONGO_URI'))
+db = client['ReconhecimentoFacial']
+collection = db["rostos"]
+
+
+try:
+    client.admin.command('ping')
+    print('Conexão bem-sucedida!')
+except Exception as exc:
+    print(f'Algo deu errado: {exc}')
 
 
 @app.route("/recognize", methods=['POST'])
@@ -65,6 +78,36 @@ def recognize():
     except Exception as e:
         return {"error": f"An unexpected error occurred: {str(e)}"}, 500
 
+@app.route('/register', methods=['POST'])
+def registerUser():
+    picture = request.files.get('pic')
+    name = request.form.get('name')
+
+    if not picture or not name:
+        return {'result': 'Missing either picture or name'}, 400
+
+    # Getting the encoding of the face in the submitted pic 
+    pictureFace = face_recognition.load_image_file(picture)
+    pictureFaceEncodings = face_recognition.face_encodings(pictureFace)
+
+    # Check if a face was detected
+    if not pictureFaceEncodings:
+        return {'result': 'No face detected'}, 400
+
+    # COnvert back using np.array()
+    encodingToList = pictureFaceEncodings[0].tolist()
+
+    newDocument = {'rosto': encodingToList, 'nome': name }
+
+    print(newDocument)
+
+    newUser = collection.insert_one(newDocument)
+
+    return {'result': str(newUser.inserted_id)}
+
+
+
+
 # AI route to test AI-relaetd stuff
 @app.route("/ai", methods=['POST'])
 def ai():
@@ -98,6 +141,6 @@ def ai():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0")
 # todo: clean up useless dependencies
 
