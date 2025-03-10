@@ -47,7 +47,8 @@ COPY . .
 
 # Create virtual environment and install dependencies in one step
 RUN python3 -m venv venv && \
-    venv/bin/pip install --no-cache-dir -r requirements.txt
+    venv/bin/pip install --no-cache-dir -r requirements.txt && \
+    venv/bin/pip install deepface tf-keras
 
 # Run the app using the virtual environment
 CMD ["venv/bin/python", "server.py"]
